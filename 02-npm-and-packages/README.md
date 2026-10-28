@@ -352,3 +352,75 @@ Transitive (statuses):  /home/mdsaqib/Projects/Learnables/javascript-async-lab/n
 2. How does `npm` know which transitive dependencies a package requires?
 3. What does dependency **hoisting** mean, and how does it save disk space?
 4. How do Node.js and `npm` allow two different packages in the same project to use two different, incompatible versions of the same transitive dependency?
+
+Append this final lesson to the bottom of your `02-npm-and-packages/README.md` file to complete Phase 02:
+
+```markdown
+## Lesson 5: Semantic Versioning and Local vs. Global Installs
+
+### 1. The Problem with Unpredictable Updates
+
+If a project relies on `express` version `4.1.0`, and the authors release version `5.0.0` with completely rewritten routing logic, automatically upgrading would crash your application.
+
+To solve this, the npm ecosystem uses **Semantic Versioning (SemVer)**, formatted as `Major.Minor.Patch` (e.g., `2.14.3`):
+- **Major (2):** Breaking changes. If this number increases, old code might break. Manual testing is required.
+- **Minor (14):** New features. Backward compatible. Safe to update.
+- **Patch (3):** Bug fixes. Always safe to update immediately.
+
+### 2. The Magic Prefixes (`^` and `~`)
+
+Look inside your `package.json` dependencies:
+```json
+"dependencies": {
+  "http-errors": "^2.0.1",
+  "ms": "^2.1.3"
+}
+
+```
+
+* **Caret (`^`) — Safe Feature Updates:** `^2.1.3` tells npm, *"Accept any newer Minor or Patch versions (like 2.5.0), but NEVER install 3.x.x."*
+* **Tilde (`~`) — Bug Fixes Only:** `~2.0.2` tells npm, *"Only accept Patch updates (like 2.0.9), but NEVER install 2.1.0."*
+
+### 3. Local Installs, Global Installs, and `npx`
+
+1. **Local Install (`npm install ms`):** Downloads the package into the current folder's `node_modules/`. This is the standard for packages you `require()` in your code.
+2. **Global Install (`npm install -g nodemon`):** Installs a package directly into your operating system environment so it can be used as a terminal command anywhere. **Anti-pattern warning:** Global installs cause conflicts when Project A needs version 1 and Project B needs version 3 of the same tool.
+3. **`npx` (Node Package Execute):** The modern alternative to global installs. `npx` temporarily downloads a terminal tool, runs it once, and throws it away (or uses the local version if one exists in your project).
+
+### 4. Experiment: Parse SemVer and Run a Temporary CLI Tool
+
+File: `02-npm-and-packages/05-semver-parser.js`
+
+```javascript
+const versionString = "2.14.3";
+const [major, minor, patch] = versionString.split(".");
+
+console.log("=== Semantic Versioning Decoder ===");
+console.log(`Original:  ${versionString}`);
+console.log(`Major (${major}): Breaking changes. Code rewrites needed.`);
+console.log(`Minor (${minor}): New features. Backwards compatible.`);
+console.log(`Patch (${patch}): Bug fixes. Always safe to update.`);
+
+```
+
+Run the parser, check for updates, and use `npx`:
+
+```bash
+node 02-npm-and-packages/05-semver-parser.js
+npm outdated
+npx cowsay "Semantic Versioning is actually pretty smart!"
+
+```
+
+Observed output:
+
+* The parser split the version into Major, Minor, and Patch.
+* `npm outdated` returned empty, proving our locally installed packages match the latest allowed versions in the npm registry.
+* `npx` successfully downloaded the `cowsay` CLI tool, printed an ASCII cow to the terminal, and exited without leaving `cowsay` permanently installed on our global system path.
+
+### 5. Questions to Revisit
+
+1. Why would an engineer use `^2.1.3` instead of locking the version strictly to `"2.1.3"`?
+2. What does a Major version bump indicate to developers using that package?
+3. Why is `npx` generally preferred over `npm install -g` for running terminal tools?
+
