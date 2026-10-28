@@ -159,3 +159,196 @@ That is the exact division of labor:
 2. When you call `require("magic-color-printer")`, what filename inside the `magic-color-printer` folder does Node look for by default?
 3. Why is manually creating folders inside `node_modules` impractical for real-world packages like `express`?
 4. Why did we use `git add -f` to commit `02-npm-and-packages/node_modules/magic-color-printer/index.js` when `node_modules` is normally in `.gitignore`?
+
+---
+
+## Lesson 3: Using `npm` for Real (The Registry vs. The CLI)
+
+### 1. The Two Parts of `npm`
+
+When developers say `"npm"`, they are referring to two distinct components working together:
+
+| Component | What It Is | What It Does |
+|---|---|---|
+| **The npm Registry** (`registry.npmjs.org`) | A public cloud database hosting over 2 million JavaScript packages | Stores compressed `.tgz` archives (tarballs) of every published version of open-source packages |
+| **The `npm` CLI** (installed alongside `node`) | A command-line tool on your machine | Connects to the registry over HTTPS, downloads packages and their dependencies, verifies integrity hashes, and extracts them into `node_modules/` |
+
+### 2. What Happens When You Run `npm install ms`?
+
+From the root of our repository, we ran:
+
+```bash
+npm install ms
+```
+
+Behind the scenes, the `npm` CLI:
+1. Contacted `https://registry.npmjs.org/ms` and downloaded the compressed package archive.
+2. Extracted the source code (`index.js`, `package.json`, `readme.md`, `license.md`) into our repository's root `node_modules/ms/` folder.
+3. Recorded `ms` inside `package.json` and `package-lock.json` at the root of the repository.
+
+When we inspected `node_modules/ms/index.js`, we saw that a published npm package is just ordinary JavaScript functions exported via `module.exports`.
+
+### 3. Experiment: Use a Real Package Installed at the Repository Root
+
+File: `02-npm-and-packages/03-real-npm-package.js`
+
+```javascript
+// Notice: We did NOT put `ms` inside `02-npm-and-packages/node_modules`!
+// `npm install ms` put it in the ROOT `javascript-async-lab/node_modules/ms`.
+// Because Node climbs up parent folders (`module.paths`), it finds it automatically!
+const ms = require("ms");
+
+console.log("=== Converting human time to milliseconds ===");
+console.log("2 seconds in ms:", ms("2s"));
+console.log("5 minutes in ms:", ms("5m"));
+console.log("2 days in ms:   ", ms("2 days"));
+
+console.log("\n=== Converting milliseconds back to human time ===");
+console.log("60000 ms is:    ", ms(60000, { long: true }));
+console.log("172800000 ms is:", ms(172800000, { long: true }));
+
+console.log("\n=== Exact file path Node loaded `ms` from ===");
+console.log(require.resolve("ms"));
+```
+
+Run:
+
+```bash
+node 02-npm-and-packages/03-real-npm-package.js
+```
+
+Observed output:
+
+```text
+=== Converting human time to milliseconds ===
+2 seconds in ms: 2000
+5 minutes in ms: 300000
+2 days in ms:    172800000
+
+=== Converting milliseconds back to human time ===
+60000 ms is:     1 minute
+172800000 ms is: 2 days
+
+=== Exact file path Node loaded `ms` from ===
+/home/mdsaqib/Projects/Learnables/javascript-async-lab/node_modules/ms/index.js
+```
+
+### 4. Understanding the Output
+
+- Even though `03-real-npm-package.js` is inside `02-npm-and-packages/`, calling `require("ms")` automatically climbed one directory up to `javascript-async-lab/node_modules/ms/index.js`.
+- `require.resolve("ms")` runs Node's module resolution algorithm and returns the exact absolute path to the entry file without executing it.
+
+### 5. Questions to Revisit
+
+1. What is the difference between the npm Registry and the `npm` CLI?
+2. Why was `02-npm-and-packages/03-real-npm-package.js` able to find `ms` even though `ms` was installed in the root `node_modules/` directory?
+3. What does `require.resolve("ms")` return compared to `require("ms")`?
+
+---
+
+## Lesson 4: Direct vs. Transitive Dependencies
+
+### 1. Why Does Installing 1 Package Create Multiple Folders in `node_modules`?
+
+When we installed `ms`, only 1 folder was added to `node_modules` because `ms` has zero dependencies of its own.
+
+However, most packages build upon other packages:
+- **Direct Dependency:** A package that **your project** explicitly installs and imports (e.g., `ms`, `http-errors`).
+- **Transitive (Indirect) Dependency:** A package that one of **your direct dependencies** requires under the hood in order to function.
+
+### 2. Inspecting the Dependency Tree
+
+When we ran `npm install http-errors` and inspected the dependency tree with `npm ls --all`:
+
+```bash
+npm install http-errors
+npm ls --all
+```
+
+Observed output:
+
+```text
+javascript-async-lab@ /home/mdsaqib/Projects/Learnables/javascript-async-lab
+├─┬ http-errors@2.0.1
+│ ├── depd@2.0.0
+│ ├── inherits@2.0.4
+│ ├── setprototypeof@1.2.0
+│ ├── statuses@2.0.2
+│ └── toidentifier@1.0.1
+└── ms@2.1.3
+```
+
+Even though we only installed **2 direct dependencies** (`ms` and `http-errors`), our `node_modules` folder now contains **7 packages** (`depd`, `http-errors`, `inherits`, `ms`, `setprototypeof`, `statuses`, `toidentifier`) because `http-errors` has 5 transitive dependencies listed in its own `package.json`.
+
+### 3. Why Are Transitive Dependencies Placed Flat in the Root `node_modules/`? (Hoisting)
+
+Instead of nesting `statuses` inside `node_modules/http-errors/node_modules/statuses`, `npm` places (**hoists**) it flat at the top level: `node_modules/statuses`.
+
+- **How `http-errors` finds it:** When `node_modules/http-errors/index.js` calls `require("statuses")`, Node checks `node_modules/http-errors/node_modules` first, doesn't find it, climbs up to the root `node_modules/statuses`, and loads it.
+- **Why hoisting is beneficial:** If another package (like `express`) also depends on `statuses@2.0.2`, both packages can share that single hoisted folder in the root `node_modules/` instead of duplicating copies on disk.
+- **What if two packages need incompatible versions of `statuses`?** `npm` keeps one version hoisted at the root `node_modules/statuses` and nests the conflicting version inside `node_modules/<other-pkg>/node_modules/statuses` so each package resolves the exact version it needs!
+
+### 4. Experiment: Inspect Direct and Transitive Dependencies in Code
+
+File: `02-npm-and-packages/04-direct-vs-transitive.js`
+
+```javascript
+// 1. Load our DIRECT dependency (`http-errors`)
+const createError = require("http-errors");
+
+// Create a 404 HTTP Error object
+const err = createError(404, "User profile not found in database");
+
+console.log("=== 1. Using our Direct Dependency (http-errors) ===");
+console.log("Error Status Code:", err.statusCode);
+console.log("Error Name:       ", err.name);
+console.log("Error Message:    ", err.message);
+
+// 2. Read http-errors's own package.json to see what it depends on!
+const httpErrorsPkg = require("http-errors/package.json");
+
+console.log("\n=== 2. Transitive Dependencies Required by http-errors ===");
+console.table(httpErrorsPkg.dependencies);
+
+// 3. Prove where Node resolved both the Direct and Transitive dependencies from:
+console.log("\n=== 3. Where did Node load them from on disk? ===");
+console.log("Direct (http-errors):  ", require.resolve("http-errors"));
+console.log("Transitive (statuses): ", require.resolve("statuses"));
+```
+
+Run:
+
+```bash
+node 02-npm-and-packages/04-direct-vs-transitive.js
+```
+
+Observed output:
+
+```text
+=== 1. Using our Direct Dependency (http-errors) ===
+Error Status Code: 404
+Error Name:        NotFoundError
+Error Message:     User profile not found in database
+
+=== 2. Transitive Dependencies Required by http-errors ===
+┌────────────────┬──────────┐
+│ (index)        │ Values   │
+├────────────────┼──────────┤
+│ depd           │ '~2.0.0' │
+│ inherits       │ '~2.0.4' │
+│ setprototypeof │ '~1.2.0' │
+│ statuses       │ '~2.0.2' │
+│ toidentifier   │ '~1.0.1' │
+└────────────────┴──────────┘
+
+=== 3. Where did Node load them from on disk? ===
+Direct (http-errors):   /home/mdsaqib/Projects/Learnables/javascript-async-lab/node_modules/http-errors/index.js
+Transitive (statuses):  /home/mdsaqib/Projects/Learnables/javascript-async-lab/node_modules/statuses/index.js
+```
+
+### 5. Questions to Revisit
+
+1. What is the difference between a direct dependency and a transitive dependency?
+2. How does `npm` know which transitive dependencies a package requires?
+3. What does dependency **hoisting** mean, and how does it save disk space?
+4. How do Node.js and `npm` allow two different packages in the same project to use two different, incompatible versions of the same transitive dependency?
