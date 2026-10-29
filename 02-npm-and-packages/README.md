@@ -353,9 +353,7 @@ Transitive (statuses):  /home/mdsaqib/Projects/Learnables/javascript-async-lab/n
 3. What does dependency **hoisting** mean, and how does it save disk space?
 4. How do Node.js and `npm` allow two different packages in the same project to use two different, incompatible versions of the same transitive dependency?
 
-Append this final lesson to the bottom of your `02-npm-and-packages/README.md` file to complete Phase 02:
 
-```markdown
 ## Lesson 5: Semantic Versioning and Local vs. Global Installs
 
 ### 1. The Problem with Unpredictable Updates
