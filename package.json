@@ -2,5 +2,29 @@
   "dependencies": {
     "http-errors": "~2.0.1",
     "ms": "^2.1.3"
-  }
+  },
+  "name": "javascript-async-lab",
+  "version": "1.0.0",
+  "description": "A hands-on learning repository exploring JavaScript execution, callbacks, Promises, async/await, the event loop, and concurrency.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lab-test": "node 03-package-json/03-custom-script-runner.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/md-saqib001/javascript-async-lab.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/md-saqib001/javascript-async-lab/issues"
+  },
+  "homepage": "https://github.com/md-saqib001/javascript-async-lab#readme"
 }
