@@ -30,3 +30,13 @@ This proves a fundamental rule of JavaScript: **A timer being "due" is not the s
 The operating system knows the 200ms timer is finished, but it cannot inject the callback into the Call Stack because the stack is currently blocked by the `while` loop. The callback must wait in a queue until the Call Stack is completely empty.
 
 **Takeaway:** Never put heavy CPU-bound math operations on the main Node.js thread, or you will freeze the entire server for all other users.
+
+## Lesson 3: The "Why" of Asynchronous Design
+
+### 1. The Waiter Analogy
+A Node.js server is like a restaurant with exactly one waiter (the Single Thread). 
+If the waiter takes a customer's order and stands in the kitchen waiting 5 minutes for the food to cook (Synchronous Blocking), every other customer in the restaurant is ignored. 
+To serve a full restaurant, the waiter must drop the ticket off at the kitchen (Offloading to the OS) and immediately return to the dining room to take the next customer's order. 
+
+### 2. The Golden Rule of Node.js
+We use asynchronous programming so the main thread never stands in the kitchen.
