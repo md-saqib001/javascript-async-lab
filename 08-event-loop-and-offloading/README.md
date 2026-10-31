@@ -29,3 +29,11 @@ The **Event Loop** is an infinite C++ loop inside libuv that constantly monitors
 This is why `setTimeout(..., 0)` does not execute immediately. The 0-millisecond timer finishes instantly, and the OS puts the callback in the Task Queue. But if there is still synchronous code executing, the Event Loop blocks the callback from running until the main program is completely finished. 
 
 **Takeaway:** Asynchronous does not mean "runs at the exact same time." It means "runs later, when the background task finishes AND the main thread is finally free."
+
+
+
+## Lesson 3: The Hardware Advantage
+
+### 1. High Concurrency, Low Memory
+Traditional languages (Java, PHP) solve concurrency by spawning a new Thread for every single user. 10,000 users require 10,000 threads, consuming massive amounts of RAM just to wait on network I/O.
+Because Node.js offloads I/O to the OS kernel and uses a single Event Loop, it can handle 10,000 concurrent network connections with a fraction of the RAM. This architecture is what makes Node.js ideal for real-time chat servers, streaming, and high-traffic APIs.
